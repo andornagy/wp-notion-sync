@@ -2,7 +2,7 @@
 
 namespace WP_Notion_Sync;
 
-use WP_Notion_Sync\Notion_API;
+use WP_Notion_Sync\Posts;
 use WP_Notion_Sync\Logger;
 
 /**
@@ -14,36 +14,17 @@ function wpns_test_shortcode_callback()
 {
     $output = '';
 
-    $wpns_options = get_option('wpns_options');
+    // Initiate Posts class;
+    $query = new Posts();
 
-    $notionApiToken = $wpns_options['notion_api_key'];
-    $myDatabaseId = $wpns_options['notion_database_id'];
+    $posts = $query->get_posts();
 
-    if (empty($notionApiToken)) {
-        Logger::log('WP_Notion_Sync: Notion API Key is missing for shortcode [wpns_test_shortcode]');
-        return '<!-- Notion API Key not configured -->';
-    }
+    if ($posts) {
+        Logger::log(json_encode($posts));
 
-    try {
-        // Instantiate NotionAPI ONLY when the shortcode is used
-        $notion = new Notion_API($notionApiToken);
-
-        $database = $notion->queryDatabase($myDatabaseId, [
-            'property' => 'Status',
-            'select' => [
-                'equals' => 'draft'
-            ]
-        ]);
-
-        if ($database && !empty($database['results'])) {
-            $output = 'Found ' . count($database['results']) . ' draft items.';
-            // Add detailed rendering logic here
-        } else {
-            $output = 'No draft items found in Notion database.';
+        foreach ($posts as $post) {
+            $output .= '<pre>' . json_encode($post, JSON_PRETTY_PRINT) . '</pre>';
         }
-    } catch (\Exception $e) { // Use \Exception to refer to PHP's global Exception class
-        Logger::log('WP_Notion_Sync: Notion API Shortcode Error: ' . $e->getMessage());
-        $output = '<!-- Error retrieving Notion data. Please check logs. -->';
     }
 
     return $output;

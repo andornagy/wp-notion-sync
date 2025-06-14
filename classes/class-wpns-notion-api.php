@@ -19,11 +19,19 @@ class Notion_API
      * @param string $apiToken Your Notion Integration Token (starts with 'secret_').
      * @param string $apiVersion The Notion API version to use (e.g., '2022-06-28').
      */
-    public function __construct(string $apiToken, string $apiVersion = '2022-06-28')
+    public function __construct(string $apiVersion = '2022-06-28')
     {
-        $this->apiToken = $apiToken;
+        $wpns_options = get_option('wpns_options');
+        $this->apiToken = $wpns_options['notion_api_key'];
         $this->apiVersion = $apiVersion;
         $this->baseUrl = 'https://api.notion.com/v1/';
+
+        if (empty($this->apiToken)) {
+            Logger::log('Notion API Token is missing in plugin settings.', 'error');
+            // Depending on your plugin's design, you might throw an exception here
+            // to prevent further execution if the token is critical for the API client to function.
+            throw new \Exception("Notion API Token is not configured.");
+        }
     }
 
     /**
@@ -119,15 +127,8 @@ class Notion_API
      * @return array|null An array of page objects matching the query.
      * @throws Exception
      */
-    public function queryDatabase(string $databaseId, array $filter = [], array $sorts = []): ?array
+    public function queryDatabase(string $databaseId, array $data = []): ?array
     {
-        $data = [];
-        if (!empty($filter)) {
-            $data['filter'] = $filter;
-        }
-        if (!empty($sorts)) {
-            $data['sorts'] = $sorts;
-        }
         return $this->_request("databases/{$databaseId}/query", 'POST', $data);
     }
 }
